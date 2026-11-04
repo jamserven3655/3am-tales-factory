@@ -1,8 +1,0 @@
-name: hello
-on: [push, workflow_dispatch]
-permissions: {contents: write, pages: write}
-jobs:
-  hi:
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo hi
