@@ -41,19 +41,20 @@ if twist is None: twist=len(T)//2
 acc,tok=os.environ.get("CF_ACCOUNT_ID"),os.environ.get("CF_API_TOKEN")
 STYLE=", real amateur footage, grainy low light security camera or phone video still, night, muted colors, no faces, no text, photorealistic, vertical"
 imgs=[]
+AI_OK=[]
 for j,p in enumerate(S["prompts"]):
     f=f"{W}/i{j}.jpg"; ok=False
     if acc and tok:
         try:
             rq=urllib.request.Request(f"https://api.cloudflare.com/client/v4/accounts/{acc}/ai/run/@cf/black-forest-labs/flux-1-schnell",
-              data=json.dumps({"prompt":p+STYLE,"steps":6,"seed":random.randint(1,99999)}).encode(),
+              data=json.dumps({"prompt":p+STYLE,"steps":6}).encode(),
               headers={"Authorization":f"Bearer {tok}","Content-Type":"application/json"})
             r=json.load(urllib.request.urlopen(rq,timeout=90)); open(f,"wb").write(base64.b64decode(r["result"]["image"])); ok=True
         except Exception as e: print("image API failed:",e)
     if not ok:
         c=random.choice(["0x10161a","0x14140f","0x0d1410","0x161012"])
         run(["ffmpeg","-v","error","-y","-f","lavfi","-i",f"color=c={c}:s=1080x1920,noise=alls=40:allf=0,gblur=sigma=30,vignette=PI/3,noise=alls=12","-frames:v","1",f])
-    imgs.append(f)
+    imgs.append(f); AI_OK.append(ok)
 # ---- shots: one per line, long lines split, black flash before twist
 cut=[];n=len(imgs)
 for i,(s,e,x,r) in enumerate(T):
@@ -118,7 +119,7 @@ run(["ffmpeg","-v","error","-y","-i",f"{W}/v.mp4","-i",f"{W}/mix.wav","-filter_c
 dur=float(subprocess.check_output(["ffprobe","-v","error","-show_entries","format=duration","-of","csv=p=0",outp]))
 # ---- update site index (keep newest 14)
 vj=f"{SITE}/videos.json"; V=json.load(open(vj)) if os.path.exists(vj) else []
-V.insert(0,{"file":f"videos/{vid}.mp4","id":S["id"],"title":S["title"],"description":S["description"],"hashtags":S["hashtags"],"duration":round(dur,1),"made":datetime.datetime.utcnow().isoformat()+"Z","images":"ai" if acc and tok else "fallback"})
+V.insert(0,{"file":f"videos/{vid}.mp4","id":S["id"],"title":S["title"],"description":S["description"],"hashtags":S["hashtags"],"duration":round(dur,1),"made":datetime.datetime.utcnow().isoformat()+"Z","images":"ai" if AI_OK and all(AI_OK) else ("mixed" if any(AI_OK) else "fallback")})
 for old in V[14:]:
     try: os.remove(f"{SITE}/{old['file']}")
     except OSError: pass
