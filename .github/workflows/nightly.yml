@@ -38,3 +38,4 @@ jobs:
           git add -A && git commit -qm "publish $(date -u +%F)"
           git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" gh-pages
 # rev 2
+# rev 3
